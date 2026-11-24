@@ -1,23 +1,27 @@
-from typing import Optional, TypedDict
+from typing import TypedDict, Optional
 from pydantic import BaseModel, Field
 
 
-class ConceptCard(BaseModel):
-    """Structure finale d'une carte envoyée à l'application Android."""
-    title: str = Field(..., description="Nom du modèle mental ou biais cognitif")
-    category: str = Field(..., description="Catégorie (ex: Modèle Mental, Biais Cognitif)")
-    tldr: str = Field(..., description="Résumé ultra-concis (2-3 phrases max)")
-    practical_application: str = Field(..., description="Cas d'usage concret au quotidien")
+class ConceptOutput(BaseModel):
+    """Structure finale d'une carte Lumina, alignée sur le client Android."""
+    title: str = Field(description="Nom du modèle mental ou biais cognitif (court et percutant).")
+    category: str = Field(description="Catégorie courte (ex: Productivité, Prise de décision, Biais Cognitif).")
+    tldr: str = Field(description="Résumé ultra-clair en 1 à 2 phrases maximum.")
+    explanation: str = Field(description="Explication fluide et académique (3 à 4 phrases max).")
+    practical_application: str = Field(description="Action concrète applicable dès aujourd'hui (2 phrases max).")
 
 
-class LuminaState(TypedDict, total=False):
-    """
-    État partagé qui circule entre les nœuds du graphe LangGraph.
-    total=False permet à chaque nœud de ne retourner que les clés qu'il modifie.
-    """
-    topic: str                         # Sujet en entrée (ex: "Rasoir d'Ockham")
-    research_notes: str                # Faits sourcés extraits par le Researcher
-    draft: Optional[ConceptCard]       # Brouillon structuré généré par le Writer
-    is_approved: bool                  # Verdict qualité de l'Editor
-    editor_feedback: str               # Consignes de correction si rejeté
-    revision_count: int                # Garde-fou pour éviter toute boucle infinie
+class EditorReview(BaseModel):
+    """Verdict structuré de l'agent Éditeur."""
+    is_approved: bool = Field(description="True si le contenu respecte le ton calme, académique et concis.")
+    feedback: str = Field(description="Si rejeté, instructions précises d'amélioration. Sinon, 'Approuvé'.")
+
+
+class AgentState(TypedDict):
+    """État partagé par tous les nœuds du graphe LangGraph."""
+    topic: str
+    research_notes: str
+    draft: Optional[ConceptOutput]
+    is_approved: bool
+    feedback: str
+    revision_count: int

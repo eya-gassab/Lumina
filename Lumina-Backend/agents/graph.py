@@ -1,55 +1,43 @@
-from typing import Literal
-from langgraph.graph import END, START, StateGraph
+from langgraph.graph import StateGraph, END
+from agents.state import AgentState
+from agents.nodes import researcher_node, writer_node, editor_node
 
-from agents.nodes import editor_node, researcher_node, writer_node
-from agents.state import LuminaState
-
-# Plafond de sécurité pour garantir la terminaison du graphe
 MAX_REVISIONS = 2
 
 
-def route_after_editor(state: LuminaState) -> Literal["revise", "approved"]:
-    """Décide si le brouillon est validé ou doit retourner chez le Writer."""
-    if state.get("is_approved", False):
-        return "approved"
-    if state.get("revision_count", 0) >= MAX_REVISIONS:
-        return "approved"
-    return "revise"
+def should_continue(state: AgentState) -> str:
+    """Décide si on termine ou si on renvoie le brouillon au Writer."""
+    if state["is_approved"] or state["revision_count"] >= MAX_REVISIONS:
+        return END
+    return "writer"
 
 
 def build_lumina_graph():
-    """Construit et compile le StateGraph multi-agents de Lumina."""
-    builder = StateGraph(LuminaState)
+    """Construit et compile le workflow multi-agents Lumina."""
+    workflow = StateGraph(AgentState)
 
-    # 1. Déclaration des nœuds
-    builder.add_node("researcher", researcher_node)
-    builder.add_node("writer", writer_node)
-    builder.add_node("editor", editor_node)
+    # 1. Ajout des nœuds
+    workflow.add_node("researcher", researcher_node)
+    workflow.add_node("writer", writer_node)
+    workflow.add_node("editor", editor_node)
 
-    # 2. Connexions linéaires principales
-    builder.add_edge(START, "researcher")
-    builder.add_edge("researcher", "writer")
-    builder.add_edge("writer", "editor")
+    # 2. Définition du flux séquentiel
+    workflow.set_entry_point("researcher")
+    workflow.add_edge("researcher", "writer")
+    workflow.add_edge("writer", "editor")
 
-    # 3. Boucle de validation conditionnelle
-    builder.add_conditional_edges(
+    # 3. Boucle conditionnelle de validation
+    workflow.add_conditional_edges(
         "editor",
-        route_after_editor,
+        should_continue,
         {
-            "revise": "writer",
-            "approved": END,
-        },
+            "writer": "writer",
+            END: END
+        }
     )
 
-    return builder.compile()
+    return workflow.compile()
 
 
-# Instance compilée une seule fois au démarrage (évite de reconstruire le graphe à chaque requête)
-lumina_graph = build_lumina_graph()
-
-
-if __name__ == "__main__":
-    # Test rapide en ligne de commande : python -m agents.graph
-    result = lumina_graph.invoke({"topic": "Rasoir d'Ockham", "revision_count": 0})
-    print("Approuvé :", result["is_approved"], "| Révisions :", result["revision_count"])
-    print("Carte générée :", result["draft"].model_dump_json(indent=2))
+# Instance compilée prête à être importée par FastAPI demain
+lumina_pipeline = build_lumina_graph()

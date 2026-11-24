@@ -1,64 +1,65 @@
-from agents.state import ConceptCard, LuminaState
+import os
+from dotenv import load_dotenv
+from langchain_groq import ChatGroq
+from langchain_core.messages import SystemMessage, HumanMessage
+
+from agents.state import AgentState, ConceptOutput, EditorReview
+from agents.prompts import RESEARCHER_PROMPT, WRITER_PROMPT, EDITOR_PROMPT
+
+load_dotenv()
+
+# Modèle unique partagé : rapide, performant en français, température basse pour la rigueur
+llm = ChatGroq(
+    model="openai/gpt-oss-120b",
+    temperature=0.3,
+    api_key=os.getenv("GROQ_API_KEY")
+)
+
+# Versions avec sortie JSON garantie via Pydantic
+writer_llm = llm.with_structured_output(ConceptOutput)
+editor_llm = llm.with_structured_output(EditorReview)
 
 
-def researcher_node(state: LuminaState) -> dict:
-    """
-    Agent 1 (Researcher) : rassemble les faits clés et la définition sourcée du sujet.
-    """
-    topic = state["topic"]
-
-    # TODO (Mardi) : remplacer par l'appel LLM + prompt de recherche sourcée
-    notes = (
-        f"Origine et principe fondamental de '{topic}'. "
-        "Utile pour la prise de décision et la clarté mentale."
-    )
-
-    return {"research_notes": notes}
+def researcher_node(state: AgentState) -> dict:
+    """Agent 1 : Rassemble les faits clés sur le sujet."""
+    print(f"🔎 [Researcher] Recherche sur : {state['topic']}...")
+    response = llm.invoke([
+        SystemMessage(content=RESEARCHER_PROMPT),
+        HumanMessage(content=f"Sujet à documenter : {state['topic']}")
+    ])
+    return {"research_notes": response.content}
 
 
-def writer_node(state: LuminaState) -> dict:
-    """
-    Agent 2 (Writer) : transforme les notes de recherche en une carte éditoriale calme et concise.
-    Prend en compte le feedback de l'Editor lors d'une seconde passe.
-    """
-    topic = state["topic"]
-    feedback = state.get("editor_feedback", "")
+def writer_node(state: AgentState) -> dict:
+    """Agent 2 : Rédige ou révise la carte éditoriale."""
+    attempt = state.get("revision_count", 0) + 1
+    print(f"✍️  [Writer] Rédaction (tentative {attempt})...")
 
-    # TODO (Mardi) : remplacer par l'appel LLM en sortie structurée (ConceptCard)
-    tldr_text = (
-        f"{topic} permet de simplifier une décision complexe en allant à l'essentiel."
-        if not feedback
-        else f"{topic} : version affinée suite au retour éditorial ({feedback})."
-    )
+    user_content = f"Notes de recherche :\n{state['research_notes']}"
+    if state.get("feedback"):
+        user_content += f"\n\nFeedback de l'Éditeur à corriger :\n{state['feedback']}"
 
-    card = ConceptCard(
-        title=topic,
-        category="Modèle Mental",
-        tldr=tldr_text,
-        practical_application=f"Appliquez '{topic}' avant de lancer une nouvelle tâche cette semaine.",
-    )
-
-    return {"draft": card}
-
-
-def editor_node(state: LuminaState) -> dict:
-    """
-    Agent 3 (Editor) : vérifie la qualité, la concision et le ton académique/calme.
-    Incrémente le compteur de révisions à chaque passage.
-    """
-    draft = state.get("draft")
-    revisions = state.get("revision_count", 0) + 1
-
-    # TODO (Mardi) : remplacer cette validation basique par le prompt critique de l'Editor
-    if draft and len(draft.tldr) >= 20 and draft.practical_application:
-        return {
-            "is_approved": True,
-            "editor_feedback": "",
-            "revision_count": revisions,
-        }
-
+    draft: ConceptOutput = writer_llm.invoke([
+        SystemMessage(content=WRITER_PROMPT),
+        HumanMessage(content=user_content)
+    ])
     return {
-        "is_approved": False,
-        "editor_feedback": "Le TL;DR est trop court ou l'application pratique manque.",
-        "revision_count": revisions,
+        "draft": draft,
+        "revision_count": attempt
+    }
+
+
+def editor_node(state: AgentState) -> dict:
+    """Agent 3 : Valide la qualité éditoriale et la concision."""
+    print("🧐 [Editor] Vérification qualité...")
+    draft_json = state["draft"].model_dump_json(indent=2)
+
+    review: EditorReview = editor_llm.invoke([
+        SystemMessage(content=EDITOR_PROMPT),
+        HumanMessage(content=f"Carte à évaluer :\n{draft_json}")
+    ])
+    print(f"   -> Verdict : {'✅ Approuvé' if review.is_approved else '❌ À réviser'} ({review.feedback})")
+    return {
+        "is_approved": review.is_approved,
+        "feedback": review.feedback
     }
