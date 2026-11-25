@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-25",
+  "count": 3,
+  "concepts": [
+    {
+      "id": 1,
+      "title": "Le Rasoir d'Ockham",
+      "category": "Prise de décision",
+      "tldr": "Parmi plusieurs explications possibles, la plus simple est généralement la plus probable.",
+      "explanation": "Formulé au XIVe siècle par Guillaume d'Ockham, ce principe invite à éliminer les hypothèses superflues. En ingénierie comme au quotidien, une explication qui repose sur moins de suppositions a statistiquement moins de chances d'être fausse.",
+      "practical_application": "Face à un bug ou un problème complexe aujourd'hui, vérifie d'abord la cause la plus simple avant d'imaginer un scénario élaboré."
+    },
+    {
+      "id": 2,
+      "title": "Biais des Coûts Irrécupérables",
+      "category": "Biais Cognitif",
+      "tldr": "Nous persistons souvent dans une mauvaise décision uniquement à cause des ressources déjà investies.",
+      "explanation": "Le Sunk Cost Fallacy pousse à continuer un projet non rentable ou une activité inutile par peur de « perdre » le temps ou l'argent déjà dépensé. Or, ces ressources passées sont définitivement perdues, quelle que soit la décision future.",
+      "practical_application": "Avant de poursuivre une tâche qui stagne, demande-toi : si je repartais de zéro aujourd'hui, est-ce que je m'y engagerais encore ?"
+    },
+    {
+      "id": 3,
+      "title": "La Loi de Parkinson",
+      "category": "Productivité",
+      "tldr": "Tout travail s'étale de façon à occuper l'intégralité du temps disponible pour son achèvement.",
+      "explanation": "Énoncée par Cyril Northcote Parkinson, cette loi observe que sans contrainte stricte, une tâche simple finit par consommer toute la journée. Réduire volontairement la fenêtre de temps force la concentration sur l'essentiel.",
+      "practical_application": "Fixe une limite stricte de 45 minutes avec un minuteur sur ta prochaine tâche au lieu de lui allouer toute l'après-midi."
+    }
+  ]
+}
