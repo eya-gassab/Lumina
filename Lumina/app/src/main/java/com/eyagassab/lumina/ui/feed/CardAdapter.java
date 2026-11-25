@@ -9,14 +9,25 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.eyagassab.lumina.data.Concept;
 import com.eyagassab.lumina.databinding.ItemCardBinding;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardViewHolder> {
 
-    private final List<Concept> concepts;
+    private final List<Concept> concepts = new ArrayList<>();
 
-    public CardAdapter(List<Concept> concepts) {
-        this.concepts = concepts;
+    public CardAdapter(List<Concept> initialConcepts) {
+        if (initialConcepts != null) {
+            this.concepts.addAll(initialConcepts);
+        }
+    }
+
+    public void setConcepts(List<Concept> newConcepts) {
+        this.concepts.clear();
+        if (newConcepts != null) {
+            this.concepts.addAll(newConcepts);
+        }
+        notifyDataSetChanged();
     }
 
     @NonNull

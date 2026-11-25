@@ -8,11 +8,18 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.viewpager2.widget.ViewPager2;
-import com.eyagassab.lumina.data.SampleData;
+
+import com.eyagassab.lumina.data.ConceptRepository;
 import com.eyagassab.lumina.ui.feed.CardAdapter;
 import com.eyagassab.lumina.ui.feed.ScalePageTransformer;
 
+import java.util.Collections;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class MainActivity extends AppCompatActivity {
+
+    private final ExecutorService syncExecutor = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,9 +32,21 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        CardAdapter adapter = new CardAdapter(Collections.emptyList());
         ViewPager2 viewPager = findViewById(R.id.viewPager);
-        viewPager.setAdapter(new CardAdapter(SampleData.getConcepts()));
+        viewPager.setAdapter(adapter);
         viewPager.setPageTransformer(new ScalePageTransformer());
 
+        ConceptRepository repository = new ConceptRepository(this);
+        repository.observeConcepts().observe(this, adapter::setConcepts);
+
+        // Synchronisation initiale en arrière-plan (jamais sur le Main Thread)
+        syncExecutor.execute(repository::syncDailyConceptsBlocking);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        syncExecutor.shutdown();
     }
 }
