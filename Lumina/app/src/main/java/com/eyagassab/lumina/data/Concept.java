@@ -1,7 +1,12 @@
 package com.eyagassab.lumina.data;
 
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
+@Entity(tableName = "concepts")
 public class Concept {
 
+    @PrimaryKey
     private final int id;
     private final String title;
     private final String tldr;
